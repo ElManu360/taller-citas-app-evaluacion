@@ -216,6 +216,84 @@ class ServicioCitasImplTest {
 		verify(repositorioCitas, never()).save(any());
 	}
 
+	// ==========================================
+	// PREGUNTA 03: CANCELACIÓN DE CITAS
+	// ==========================================
+
+	@Test
+	@DisplayName("Cancelar cita cuando faltan 24 horas")
+	void cancelarCitaCon24HorasDeAnticipacion() {
+		// Arrange
+		Long citaId = 1L;
+		LocalDateTime fechaCita = LocalDateTime.of(2026, 9, DIA, 10, 0);
+		LocalDateTime ahora24h = fechaCita.minusHours(24);
+
+		Cita cita = new Cita();
+		cita.setId(citaId);
+		cita.setPlacaVehiculo(PLACA);
+		cita.setTipoServicio(TipoServicio.CAMBIO_ACEITE);
+		cita.setFechaHoraInicio(fechaCita);
+		cita.setEstado(EstadoCita.PROGRAMADA);
+
+		when(repositorioCitas.findById(citaId)).thenReturn(Optional.of(cita));
+		when(proveedorFechaHora.ahora()).thenReturn(ahora24h);
+		when(repositorioCitas.save(any(Cita.class))).thenAnswer(i -> i.getArgument(0));
+
+		// Act
+		servicioCitas.cancelarCita(citaId);
+
+		// Assert
+		assertEquals(EstadoCita.CANCELADA, cita.getEstado());
+	}
+
+	@Test
+	@DisplayName("Cancelar cita cuando faltan 2 horas")
+	void cancelarCitaCon2HorasDeAnticipacion() {
+		// Arrange
+		Long citaId = 2L;
+		LocalDateTime fechaCita = LocalDateTime.of(2026, 9, DIA, 10, 0);
+		LocalDateTime ahora2h = fechaCita.minusHours(2);
+
+		Cita cita = new Cita();
+		cita.setId(citaId);
+		cita.setPlacaVehiculo(PLACA);
+		cita.setTipoServicio(TipoServicio.CAMBIO_ACEITE);
+		cita.setFechaHoraInicio(fechaCita);
+		cita.setEstado(EstadoCita.PROGRAMADA);
+
+		when(repositorioCitas.findById(citaId)).thenReturn(Optional.of(cita));
+		when(proveedorFechaHora.ahora()).thenReturn(ahora2h);
+		when(repositorioCitas.save(any(Cita.class))).thenAnswer(i -> i.getArgument(0));
+
+		// Act
+		servicioCitas.cancelarCita(citaId);
+
+		// Assert
+		assertEquals(EstadoCita.CANCELADA, cita.getEstado());
+	}
+
+	@Test
+	@DisplayName("Intentar cancelar cita ya atendida debe lanzar excepcion")
+	void lanzarExcepcionAlCancelarCitaAtendida() {
+		// Arrange
+		Long citaId = 3L;
+		LocalDateTime fechaCita = LocalDateTime.of(2026, 9, DIA, 10, 0);
+
+		Cita cita = new Cita();
+		cita.setId(citaId);
+		cita.setPlacaVehiculo(PLACA);
+		cita.setTipoServicio(TipoServicio.CAMBIO_ACEITE);
+		cita.setFechaHoraInicio(fechaCita);
+		cita.setEstado(EstadoCita.ATENDIDA);
+
+		when(repositorioCitas.findById(citaId)).thenReturn(Optional.of(cita));
+
+		// Act & Assert
+		assertThrows(RuntimeException.class, () -> {
+			servicioCitas.cancelarCita(citaId);
+		});
+	}
+
 
 	@Test
 	@DisplayName("Una cita que empieza justo cuando termina otra se acepta")
